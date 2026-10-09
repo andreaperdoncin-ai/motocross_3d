@@ -50,13 +50,35 @@ def generate_track(level, coin_img=None):
     """Genera i segmenti della pista in base al livello e al bioma selezionato"""
     lines = []
     is_level_3 = (level == 3)
-    num_segments = 1000  # Lunghezza ottimizzata per tutti i livelli (snella per Amedeo)
+    num_segments = 1500 if level == 8 else (1200 if level == 9 else 1000)
     
     for i in range(num_segments):
         line = Line(i)
         
         # 1. Configurazione Altezze e Curve in base al Livello (Bioma)
-        if level == 7:
+        if level == 9:
+            # Level 9: Spazio (Onde enormi e lunghissime, zero ostacoli)
+            line.y = math.sin(i / 25.0) * 4500 + math.cos(i / 15.0) * 1500
+            if 150 < i < 300: line.curve = 2.0
+            if 400 < i < 550: line.curve = -2.5
+            if 700 < i < 850: line.curve = 3.0
+            if 950 < i < 1100: line.curve = -2.0
+            
+        elif level == 8:
+            # Level 8: Vulcano (Curve aggressive, fiamme e lava, ma salti più morbidi e distanziati)
+            line.y = math.sin(i / 25.0) * 1600 + math.cos(i / 12.0) * 500
+            if 100 < i < 220: line.curve = 3.5
+            if 280 < i < 400: line.curve = -4.0
+            if 500 < i < 650: line.curve = 3.8
+            if 700 < i < 850: line.curve = -3.5
+            if 900 < i < 980: line.curve = 4.0
+            
+            # Tunnel di lava nella roccia vulcanica
+            if 650 < i < 780:
+                line.has_cave_tunnel = True
+                line.cave_tunnel_color = (50, 10, 5) if (i // 4) % 2 == 0 else (35, 5, 0)
+            
+        elif level == 7:
             # Level 7: Notte Foresta (Colline fitte e percorsi sinuosi)
             line.y = math.sin(i / 10.0) * 1500 + math.cos(i / 5.0) * 500
             if 80 < i < 200: line.curve = 2.5
@@ -117,7 +139,7 @@ def generate_track(level, coin_img=None):
         # --- RETTILINEO D'ONORE PER L'ARCO DI AMEDEO ---
         # Appiattiamo il terreno e raddrizziamo le curve progressivamente tra i segmenti 440 e 560.
         # Questo crea una pista d'atterraggio visiva perfetta per vedere l'arco da grandissima distanza!
-        if level in [1, 2, 3, 4, 6, 7] and (440 <= i <= 560):
+        if level in [1, 2, 3, 4, 6, 7, 8, 9] and (440 <= i <= 560):
             distanza = abs(i - 500)
             if distanza <= 12:
                 # Zona dell'arco: rettilineo assoluto e zero colline
@@ -133,12 +155,12 @@ def generate_track(level, coin_img=None):
         if i > 20 and i % 20 == 0:
             line.sprite = coin_img
             line.spriteX = random.choice([-0.8, -0.4, 0, 0.4, 0.8])
-            if random.random() < 0.25:
-                line.sprite_h = 3500  # Monete volanti alte per incentivare i salti
+            if level == 9 or random.random() < 0.25:
+                line.sprite_h = 3500 if level != 9 else random.randint(2000, 6000) # Nello spazio monete molto in alto
                 
         # 3. Ostacoli ed Elementi di Contorno Laterali
-        tree_frequency = 4 if level == 7 else 8
-        if i % tree_frequency == 0 and not line.has_container and not line.has_cave_tunnel and not (500 <= i <= 504):
+        tree_frequency = 4 if level == 7 else (5 if level == 8 else 8)
+        if i % tree_frequency == 0 and not line.has_container and not line.has_cave_tunnel and not (500 <= i <= 504) and level != 9:
             line.has_tree = True
             line.treeX = random.choice([-1.5, 1.5, -2.0, 2.0]) if level == 7 else random.choice([-1.5, 1.5])
             if is_level_3:
@@ -151,6 +173,8 @@ def generate_track(level, coin_img=None):
                 line.urban_type = random.choice(['palm', 'palm', 'umbrella', 'sunbed', 'sandcastle'])
             elif level == 7:
                 line.urban_type = 'pine'
+            elif level == 8:
+                line.urban_type = random.choice(['lava_rock', 'lava_rock', 'lava_geyser', 'dead_tree'])
                 
         # 4. Traguardo e Archi Celebravitivi
         if i == 80:
@@ -158,12 +182,12 @@ def generate_track(level, coin_img=None):
             line.arch_text = "START"
             
        # Arco speciale "AMEDEO" a metà pista: ne mettiamo 6 di fila per creare un tunnel spettacolare!
-        if level in [1, 2, 3, 4, 6, 7] and (500 <= i <= 505):
+        if level in [1, 2, 3, 4, 6, 7, 8, 9] and (500 <= i <= 505):
             line.has_arch = True
             line.arch_text = "AMEDEO"
             
         # Pulizia di sicurezza: eliminiamo eventuali alberi/ostacoli nati dentro la galleria di Amedeo
-        if level in [1, 2, 3, 4, 6, 7] and (495 <= i <= 510):
+        if level in [1, 2, 3, 4, 6, 7, 8, 9] and (495 <= i <= 510):
             line.has_tree = False
             
         lines.append(line)

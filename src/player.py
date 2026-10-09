@@ -15,6 +15,10 @@ class Player:
         self.flip_angle = 0
         self.last_up_press_time = 0  # Temporizzatore per rilevare il doppio click
         
+        # Fisica configurabile (per Livello Spazio)
+        self.jump_power = 400
+        self.gravity = 15
+        
     def handle_input(self, keys):
         """Gestisce gli input continui della tastiera per accelerazione, freno e sterzo"""
         # Accelerazione base costante + spinta manuale (W) o freno (S / Freccia GIÙ)
@@ -57,7 +61,7 @@ class Player:
                 # Se la moto si trova a terra, attiva la spinta del salto verticale
                 if not self.is_jumping:
                     self.is_jumping = True
-                    self.jump_velocity = 400  # Potenza di stacco verso l'alto
+                    self.jump_velocity = self.jump_power  # Potenza di stacco verso l'alto
                     
         return flipped
 
@@ -65,7 +69,7 @@ class Player:
         """Aggiorna la gravità del salto e la rotazione del flip frame per frame"""
         if self.is_jumping:
             self.y += self.jump_velocity
-            self.jump_velocity -= 15  # Effetto costante della forza di gravità
+            self.jump_velocity -= self.gravity  # Effetto costante della forza di gravità
             
             if self.is_flipping:
                 self.flip_angle -= 8  # Velocità angolare per compiere la rotazione di ~360°

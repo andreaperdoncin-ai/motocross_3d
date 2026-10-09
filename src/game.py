@@ -33,6 +33,7 @@ class Game:
         self.pos = 0 
         self.lap = 1
         self.max_laps = 2
+        self.setup_level_physics()
         self.score = 0
         self.bravo_timer = 0
         self.sky_offset_x = 0
@@ -55,6 +56,16 @@ class Game:
         
         # Inizializzazione icone HUD della Classifica
         self.ui.init_leaderboard_icons(self.bike_assets)
+
+    def setup_level_physics(self):
+        if self.level == 9:
+            self.max_laps = 3
+            self.player_bike.jump_power = 150
+            self.player_bike.gravity = 2
+        else:
+            self.max_laps = 2
+            self.player_bike.jump_power = 400
+            self.player_bike.gravity = 15
 
     def load_image(self, path, scale_to=None, color_key="auto"):
         """Utility robusta per caricare immagini con trasparenza nativa e fallback"""
@@ -107,6 +118,8 @@ class Game:
         self.bg_cave_img = self.load_image("assets/bg_cave.png", (WIDTH, HEIGHT), None)
         self.bg_beach_img = self.load_image("assets/bg_beach.png", (WIDTH, HEIGHT), None)
         self.bg_night_img = self.load_image("assets/bg_night.png", (WIDTH, HEIGHT), None)
+        self.bg_volcano_img = self.load_image("assets/bg_volcano.png", (WIDTH, HEIGHT), None)
+        self.bg_space_img = self.load_image("assets/bg_space.png", (WIDTH, HEIGHT), None)
         
         self.arch_text_imgs = {}
         arch_font = pygame.font.SysFont(None, 200, bold=True)
@@ -151,6 +164,7 @@ class Game:
         elif self.level == 2: speed_boost = 20
         elif self.level == 4: speed_boost = 30
         elif self.level == 5: speed_boost = 40
+        elif self.level == 8: speed_boost = 50
         else:                 speed_boost = 0
             
         self.bots.append({
@@ -191,6 +205,7 @@ class Game:
                         elif event.key == pygame.K_RETURN:
                             self.player_color = self.available_colors[self.selected_bike_index]
                             self.state = "PLAYING"
+                            self.setup_level_physics()
                             self.lap = 1
                             self.pos = 0
                             self.score = 0
@@ -216,8 +231,11 @@ class Game:
                         elif event.key == pygame.K_F5: self.level = 5
                         elif event.key == pygame.K_F6: self.level = 6
                         elif event.key == pygame.K_F7: self.level = 7
+                        elif event.key == pygame.K_F8: self.level = 8
+                        elif event.key == pygame.K_F9: self.level = 9
                         
                         if self.level != old_level:
+                            self.setup_level_physics()
                             self.lines, self.track_length = generate_track(self.level, self.coin_img)
                             self.total_coins = sum(1 for line in self.lines if line.sprite == self.coin_img)
                             self.collected_coins = 0
@@ -226,24 +244,31 @@ class Game:
                     elif self.state in ("RACE_END", "GAMEOVER"):
                         if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             if self.player_final_rank <= 2:
-                                if self.level < 7:
+                                if self.level < 9:
                                     self.level += 1
+                                    self.setup_level_physics()
                                     self.state = "PLAYING"
                                 else:
-                                    self.level = 1
-                                    self.state = "SPLASH"
+                                    self.state = "CREDITS"
                             else:
                                 self.state = "PLAYING"
                                 
-                            self.lap = 1
-                            self.pos = 0
-                            self.lines, self.track_length = generate_track(self.level, self.coin_img)
-                            self.total_coins = sum(1 for line in self.lines if line.sprite == self.coin_img)
-                            self.collected_coins = 0
-                            self.init_bots()
-                            if self.state == "PLAYING" and self.engine_sound:
-                                self.engine_sound.play(loops=-1)
+                            if self.state != "CREDITS":
+                                self.lap = 1
+                                self.pos = 0
+                                self.lines, self.track_length = generate_track(self.level, self.coin_img)
+                                self.total_coins = sum(1 for line in self.lines if line.sprite == self.coin_img)
+                                self.collected_coins = 0
+                                self.init_bots()
+                                if self.state == "PLAYING" and self.engine_sound:
+                                    self.engine_sound.play(loops=-1)
                                 
+                    elif self.state == "CREDITS":
+                        if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE):
+                            self.level = 1
+                            self.setup_level_physics()
+                            self.state = "SPLASH"
+                            
                 if self.state == "PLAYING":
                     did_flip = self.player_bike.handle_event(event)
                     if did_flip:
@@ -271,6 +296,17 @@ class Game:
                 
             elif self.state == "RACE_END":
                 self.ui.draw_race_end(self.screen, self.level, self.final_standings, self.player_final_rank, self.collected_coins, self.total_coins)
+                pygame.display.flip()
+                self.clock.tick(FPS)
+                continue
+                
+            elif self.state == "CREDITS":
+                # We need to maintain a credits_y variable, so let's use self.credits_y
+                if not hasattr(self, 'credits_y'):
+                    self.credits_y = HEIGHT
+                self.credits_y -= 100 / FPS
+                bike_side_img = self.bike_assets.get(self.player_color, {}).get('side', self.bike_side_img)
+                self.ui.draw_credits(self.screen, self.bg_space_img, bike_side_img, self.credits_y, self.score)
                 pygame.display.flip()
                 self.clock.tick(FPS)
                 continue
@@ -337,6 +373,8 @@ class Game:
             elif self.level == 5: current_sky_color = (15, 10, 25)
             elif self.level == 6: current_sky_color = (110, 195, 255)
             elif self.level == 7: current_sky_color = (5, 5, 20)
+            elif self.level == 8: current_sky_color = (80, 20, 5)
+            elif self.level == 9: current_sky_color = (5, 5, 10)
             else:                 current_sky_color = (135, 206, 235)
             self.screen.fill(current_sky_color)
             
@@ -352,6 +390,8 @@ class Game:
             elif self.level == 5: current_bg = self.bg_cave_img
             elif self.level == 6: current_bg = self.bg_beach_img
             elif self.level == 7: current_bg = self.bg_night_img
+            elif self.level == 8: current_bg = self.bg_volcano_img
+            elif self.level == 9: current_bg = self.bg_space_img
             else:                 current_bg = self.bg_city_img
             self.screen.blit(current_bg, (bg_x, 0))
             self.screen.blit(current_bg, (bg_x - WIDTH, 0))
@@ -412,6 +452,16 @@ class Game:
                     grass, road = (244, 224, 172) if color_idx else (238, 214, 156), (220, 195, 140) if color_idx else (205, 180, 125)
                 elif self.level == 7:
                     grass, road = (10, 30, 15) if color_idx else (5, 20, 10), (35, 30, 40) if color_idx else (25, 20, 30)
+                elif self.level == 8:
+                    if getattr(l, 'has_cave_tunnel', False):
+                        grass, road = (30, 5, 0) if color_idx else (20, 3, 0), (60, 20, 5) if color_idx else (45, 15, 3)
+                    else:
+                        grass, road = (25, 25, 25) if color_idx else (15, 15, 15), (50, 35, 20) if color_idx else (40, 25, 15)
+                elif self.level == 9:
+                    colors_neon = [(255, 50, 50), (255, 150, 0), (255, 220, 0), (50, 200, 50), (0, 180, 255), (180, 50, 255)]
+                    c = colors_neon[(idx // 2) % 6]
+                    c_dark = (max(0, c[0]-50), max(0, c[1]-50), max(0, c[2]-50))
+                    grass, road = (5, 5, 10), c if color_idx else c_dark
                 else:
                     grass, road = (169, 169, 169) if color_idx else (150, 150, 150), (100, 100, 100) if color_idx else (80, 80, 80)
                 
@@ -427,12 +477,14 @@ class Game:
                     else:
                         pygame.draw.polygon(self.screen, sea, [(WIDTH, p.Y), (p.X + p.W + 40 * p.scale * 2000, p.Y), (l.X + l.W + 40 * l.scale * 2000, l.Y), (WIDTH, l.Y)])
                 
-                if self.level in [2, 3, 4, 5, 6, 7]:
+                if self.level in [2, 3, 4, 5, 6, 7, 8, 9]:
                     if self.level == 2:   rumble = (255, 0, 0) if color_idx else (200, 0, 0)
                     elif self.level == 4: rumble = (210, 180, 140) if color_idx else (160, 82, 45)
                     elif self.level == 5: rumble = (186, 85, 211) if color_idx else (0, 255, 255)
                     elif self.level == 6: rumble = (255, 255, 255) if color_idx else (0, 191, 255)
                     elif self.level == 7: rumble = (200, 200, 200) if color_idx else (80, 80, 80)
+                    elif self.level == 8: rumble = (255, 80, 0) if color_idx else (180, 40, 0)
+                    elif self.level == 9: rumble = (255, 255, 255) if color_idx else (100, 100, 100)
                     else:                 rumble = (255, 255, 255) if color_idx else (255, 0, 0)
                     self.draw_quad(rumble, p.X, p.Y, p.W * 1.15, l.X, l.Y, l.W * 1.15)
                     
@@ -607,6 +659,51 @@ class Game:
                                 pygame.draw.rect(self.screen, (40, 20, 10), (treeX - tw//8, l.Y - th, tw//4, th))
                                 pygame.draw.polygon(self.screen, (10, 50, 20), [(treeX, l.Y - th * 1.5), (treeX - tw//2, l.Y - th//2), (treeX + tw//2, l.Y - th//2)])
                                 pygame.draw.polygon(self.screen, (5, 40, 15), [(treeX, l.Y - th * 1.1), (treeX - tw//2.2, l.Y - th//4), (treeX + tw//2.2, l.Y - th//4)])
+                                
+                    elif self.level == 8:
+                        u_type = getattr(l, 'urban_type', 'lava_rock')
+                        if u_type == 'lava_rock':
+                            rw, rh = int(600 * sc), int(500 * sc)
+                            if rw > 0 and rh > 0:
+                                # Roccia vulcanica scura e frastagliata
+                                pygame.draw.polygon(self.screen, (40, 30, 25), [
+                                    (treeX - rw//2, l.Y),
+                                    (treeX - rw//3, l.Y - rh),
+                                    (treeX, l.Y - rh * 1.2),
+                                    (treeX + rw//4, l.Y - rh * 0.9),
+                                    (treeX + rw//2, l.Y)
+                                ])
+                                # Venature di lava incandescente
+                                pygame.draw.line(self.screen, (255, 80, 0), (int(treeX - rw//4), int(l.Y - rh * 0.3)), (int(treeX), int(l.Y - rh * 0.8)), max(1, int(3 * sc)))
+                                pygame.draw.line(self.screen, (255, 120, 0), (int(treeX + rw//6), int(l.Y - rh * 0.2)), (int(treeX + rw//4), int(l.Y - rh * 0.7)), max(1, int(2 * sc)))
+                        elif u_type == 'lava_geyser':
+                            gw, gh = int(300 * sc), int(1200 * sc)
+                            if gw > 0 and gh > 0:
+                                # Base del geyser
+                                pygame.draw.ellipse(self.screen, (60, 30, 10), (treeX - gw, l.Y - gw//2, gw * 2, gw))
+                                # Colonna di lava/fuoco
+                                pygame.draw.polygon(self.screen, (255, 100, 0), [
+                                    (treeX - gw//3, l.Y - gw//4),
+                                    (treeX - gw//6, l.Y - gh),
+                                    (treeX + gw//6, l.Y - gh),
+                                    (treeX + gw//3, l.Y - gw//4)
+                                ])
+                                # Nucleo più chiaro
+                                pygame.draw.polygon(self.screen, (255, 200, 50), [
+                                    (treeX - gw//6, l.Y - gw//4),
+                                    (treeX - gw//10, l.Y - gh * 0.8),
+                                    (treeX + gw//10, l.Y - gh * 0.8),
+                                    (treeX + gw//6, l.Y - gw//4)
+                                ])
+                        elif u_type == 'dead_tree':
+                            tw, th = int(400 * sc), int(1000 * sc)
+                            if tw > 0 and th > 0:
+                                # Tronco morto carbonizzato
+                                pygame.draw.rect(self.screen, (30, 20, 15), (treeX - tw//8, l.Y - th, tw//4, th))
+                                # Rami secchi
+                                pygame.draw.line(self.screen, (35, 25, 15), (int(treeX), int(l.Y - th * 0.8)), (int(treeX - tw//2), int(l.Y - th * 1.1)), max(1, int(4 * sc)))
+                                pygame.draw.line(self.screen, (35, 25, 15), (int(treeX), int(l.Y - th * 0.6)), (int(treeX + tw//2.5), int(l.Y - th * 0.9)), max(1, int(3 * sc)))
+                                pygame.draw.line(self.screen, (30, 20, 12), (int(treeX), int(l.Y - th * 0.5)), (int(treeX - tw//3), int(l.Y - th * 0.7)), max(1, int(2 * sc)))
                                 
                     else:
                         tw, th = int(600 * sc), int(1200 * sc)

@@ -245,15 +245,15 @@ class UIManager:
         prompt_font = pygame.font.SysFont(None, 44, bold=True)
         
         if player_final_rank <= 2:
-            if level < 7:
+            if level < 9:
                 msg_text = f"COMPLIMENTI! TI SEI QUALIFICATO PER IL LIVELLO {level + 1}!"
                 msg_color = (50, 255, 50)
-                next_level_name = "Neve" if level == 1 else "Città" if level == 2 else "Africa" if level == 3 else "Miniera" if level == 4 else "Mare" if level == 5 else "Notte Foresta"
+                next_level_name = "Neve" if level == 1 else "Città" if level == 2 else "Africa" if level == 3 else "Miniera" if level == 4 else "Mare" if level == 5 else "Notte Foresta" if level == 6 else "Vulcano" if level == 7 else "Spazio"
                 prompt_text = f"Premi SPAZIO o INVIO per iniziare il LIVELLO {level + 1} ({next_level_name})"
             else:
-                msg_text = "CAMPIONE DEL MONDO! HAI COMPLETATO IL GIOCO!"
+                msg_text = "CAMPIONE DEL MONDO E DELLO SPAZIO! HAI COMPLETATO IL GIOCO!"
                 msg_color = (255, 215, 0)
-                prompt_text = "Premi SPAZIO o INVIO per tornare al Menu Principale"
+                prompt_text = "Premi SPAZIO o INVIO per vedere i Titoli di Coda"
         else:
             msg_text = "PECCATO! NON TI SEI QUALIFICATO (Richiesto 1° o 2° posto)"
             msg_color = (255, 60, 60)
@@ -279,3 +279,51 @@ class UIManager:
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 2 - 100))
         screen.blit(score_msg, (WIDTH // 2 - score_msg.get_width() // 2, HEIGHT // 2))
         screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 + 100))
+
+    def draw_credits(self, screen, bg_space, bike_side, credits_y, score):
+        """Disegna la schermata finale con testo scorrevole e moto che vola"""
+        screen.blit(bg_space, (0, 0))
+        
+        # Moto che vola verso l'alto
+        # La facciamo salire mentre i crediti scorrono
+        bike_y = HEIGHT // 2 + min(0, credits_y - HEIGHT) * 1.5
+        if bike_y > -400:
+            rotated_bike = pygame.transform.rotozoom(bike_side, 45, 0.6)
+            bx = WIDTH // 2 - rotated_bike.get_width() // 2
+            screen.blit(rotated_bike, (bx, int(bike_y)))
+            # Scia di fuoco
+            pygame.draw.circle(screen, (255, 100, 0), (bx + 50, int(bike_y) + rotated_bike.get_height() - 20), 40)
+            pygame.draw.circle(screen, (255, 200, 0), (bx + 30, int(bike_y) + rotated_bike.get_height() + 10), 25)
+
+        # Testo di scorrimento stile Star Wars
+        texts = [
+            "EPISODIO FINALE",
+            "IL TRIONFO DI AMEDEO",
+            "",
+            "Amedeo ha superato ogni ostacolo.",
+            "Dalle cime innevate...",
+            "Ai crateri vulcanici...",
+            "Fino alle profondita' del cosmo!",
+            "",
+            f"PUNTEGGIO FINALE: {score}",
+            "",
+            "GRAZIE PER AVER GIOCATO!",
+            "",
+            "",
+            "Premi SPAZIO per tornare al menu"
+        ]
+        
+        font = pygame.font.SysFont(None, 72, bold=True)
+        for i, line in enumerate(texts):
+            if not line: continue
+            surf = font.render(line, True, (255, 215, 0))
+            shadow = font.render(line, True, (0, 0, 0))
+            y_pos = credits_y + i * 80
+            
+            if -100 < y_pos < HEIGHT:
+                # Piccolo effetto di trasparenza per farlo svanire in alto
+                alpha = min(255, int((y_pos + 100) / 200 * 255))
+                surf.set_alpha(alpha)
+                shadow.set_alpha(alpha)
+                screen.blit(shadow, (WIDTH // 2 - surf.get_width() // 2 + 4, int(y_pos) + 4))
+                screen.blit(surf, (WIDTH // 2 - surf.get_width() // 2, int(y_pos)))
