@@ -58,7 +58,7 @@ def generate_track(level, coin_img=None):
         # 1. Configurazione Altezze e Curve in base al Livello (Bioma)
         if level == 9:
             # Level 9: Spazio (Onde enormi e lunghissime, zero ostacoli)
-            line.y = math.sin(i / 25.0) * 4500 + math.cos(i / 15.0) * 1500
+            line.y = math.sin(i / 25.0) * 3500 + math.cos(i / 15.0) * 800
             if 150 < i < 300: line.curve = 2.0
             if 400 < i < 550: line.curve = -2.5
             if 700 < i < 850: line.curve = 3.0
@@ -80,7 +80,7 @@ def generate_track(level, coin_img=None):
             
         elif level == 7:
             # Level 7: Notte Foresta (Colline fitte e percorsi sinuosi)
-            line.y = math.sin(i / 10.0) * 1500 + math.cos(i / 5.0) * 500
+            line.y = math.sin(i / 14.0) * 1200 + math.cos(i / 7.0) * 350
             if 80 < i < 200: line.curve = 2.5
             if 250 < i < 400: line.curve = -3.0
             if 600 < i < 750: line.curve = 3.2
@@ -111,11 +111,11 @@ def generate_track(level, coin_img=None):
                 line.cave_tunnel_color = (35, 35, 40) if (i // 4) % 2 == 0 else (25, 25, 30)
                 
         elif is_level_3:
-            # Level 3: Urbano/Industriale (Rampe artificiali ripide)
-            if 200 < i < 220 or 400 < i < 420 or 600 < i < 620:
-                line.y = math.sin(((i - 200) % 20) / 20.0 * math.pi) * 2000
-            else:
-                line.y = math.sin(i / 15.0) * 500
+            # Level 3: Urbano/Industriale (Rampe artificiali sommate al terreno di base)
+            line.y = math.sin(i / 15.0) * 500
+            for ramp_start in (200, 380, 600):
+                if ramp_start < i < ramp_start + 40:
+                    line.y += math.sin((i - ramp_start) / 40.0 * math.pi) * 1400
                 
             if 100 < i < 200: line.curve = 2.0
             if 300 < i < 400: line.curve = -2.5
@@ -150,6 +150,14 @@ def generate_track(level, coin_img=None):
                 fattore = (distanza - 12) / 48.0
                 line.y = line.y * fattore
                 line.curve = line.curve * fattore
+
+        # --- RACCORDO DEL TRAGUARDO ---
+        # La quota sfuma a zero all'inizio e alla fine della pista, così l'ultimo segmento
+        # si ricollega al primo senza il "muro" che compariva a ogni cambio giro.
+        dist_traguardo = min(i, num_segments - 1 - i)
+        if dist_traguardo < 60:
+            t = dist_traguardo / 60.0
+            line.y = line.y * t * t * (3 - 2 * t)
 
         # 2. Posizionamento Monete
         if i > 20 and i % 20 == 0:

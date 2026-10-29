@@ -15,7 +15,7 @@ Motocross 3D è un entusiasmante *arcade racing game* in Python ispirato ai clas
   6. 🏖️ **Spiaggia:** Sabbia dorata, palme e ombrelloni.
   7. 🌌 **Foresta Notturna:** Un fitto bosco illuminato dalle stelle.
   8. 🌋 **Vulcano:** Lava, geyser, rocce incandescenti e tunnel infuocati.
-  9. 🚀 **Spazio Profondo:** Pista neon arcobaleno, gravità lunare (salti lunghissimi e lenti) e assenza di ostacoli (3 giri).
+  9. 🚀 **Spazio Profondo:** Pista neon arcobaleno, gravità lunare (salti lunghissimi e lenti) e assenza di ostacoli (3 giri). Attenzione: la pista non ha bordi! Se esci finisci nel vuoto: salta subito per tornare in pista, altrimenti perdi 10 punti.
 - **Fisica Dinamica:** Accelera, frena, sterza e, soprattutto, **salta**! Sfrutta le rampe per prendere il volo.
 - **Acrobazie (Backflip):** Esegui un rapido doppio click sulla Freccia Su durante un salto per effettuare un Backflip e guadagnare punti extra.
 - **Competizione IA:** Gareggia contro due bot rivali (colori rimanenti) che proveranno a soffiarti i primi due posti.

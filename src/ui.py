@@ -88,7 +88,7 @@ class UIManager:
         prompt = self.font.render("Frecce: Muovi - INVIO: Scegli", True, TEXT_COLOR)
         screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT - 70))
 
-    def draw_hud(self, screen, lap, max_laps, score, bravo_timer, collected_coins=0, total_coins=0):
+    def draw_hud(self, screen, lap, max_laps, score, bravo_timer, collected_coins=0, total_coins=0, falling=False, lost_timer=0):
         """Disegna le informazioni di gioco in tempo reale (Giri, Punti e scritte d'azione)"""
         # Testo principale Giri e Punteggio nell'angolo in alto a sinistra
         ui_text = f"Giro: {lap}/{max_laps}   Punteggio: {score}"
@@ -114,6 +114,21 @@ class UIManager:
             by = HEIGHT // 4
             screen.blit(bravo_shadow, (bx + 5, by + 5))
             screen.blit(bravo_text, (bx, by))
+
+        # Caduta nel vuoto (Livello Spazio): invito lampeggiante a saltare per tornare in pista
+        if falling:
+            color = (0, 255, 255) if (pygame.time.get_ticks() // 150) % 2 == 0 else (255, 255, 255)
+            self._draw_center_message(screen, "SALTA!", color, HEIGHT // 3)
+        elif lost_timer > 0:
+            self._draw_center_message(screen, "PERSO NELLO SPAZIO! -10", (255, 60, 60), HEIGHT // 3)
+
+    def _draw_center_message(self, screen, text, color, y):
+        """Scritta grande centrata con ombra"""
+        surf = self.bravo_font.render(text, True, color)
+        shadow = self.bravo_font.render(text, True, (0, 0, 0))
+        x = WIDTH // 2 - surf.get_width() // 2
+        screen.blit(shadow, (x + 5, y + 5))
+        screen.blit(surf, (x, y))
 
     def draw_live_leaderboard(self, screen, participants):
         """Disegna il widget trasparente della classifica live in alto a destra"""

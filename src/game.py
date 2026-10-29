@@ -66,6 +66,11 @@ class Game:
             self.max_laps = 2
             self.player_bike.jump_power = 400
             self.player_bike.gravity = 15
+        # Nello spazio la pista non ha bordi: uscendo si cade nel vuoto
+        self.player_bike.can_fall = (self.level == 9)
+        self.player_bike.reset_on_collision()
+        self.player_bike.x = max(-1.0, min(1.0, self.player_bike.x))
+        self.lost_in_space_timer = 0
 
     def load_image(self, path, scale_to=None, color_key="auto"):
         """Utility robusta per caricare immagini con trasparenza nativa e fallback"""
@@ -149,6 +154,27 @@ class Game:
         pygame.draw.polygon(self.screen, color, [
             (x1 - w1, y1), (x2 - w2, y2), (x2 + w2, y2), (x1 + w1, y1)
         ])
+
+    def draw_tunnel_segment(self, l, p_line, c_col, shade, half_w, height, camX):
+        """Disegna pareti e soffitto di un tratto di galleria tra due segmenti consecutivi"""
+        # Anche se il pavimento del tratto è nascosto da un dosso, pareti e soffitto possono
+        # spuntare sopra la cresta: li disegniamo ritagliati sopra la strada più vicina (p_line.clip)
+        # invece di saltarli, altrimenti nel soffitto si aprono dei buchi sullo sfondo.
+        clip_h = int(min(HEIGHT, p_line.clip))
+        if clip_h <= 0:
+            return
+        c_col_d = (max(0, c_col[0]-shade), max(0, c_col[1]-shade), max(0, c_col[2]-shade))
+        sx1 = (1 + l.scale * (l.x - half_w - camX)) * WIDTH / 2
+        sx2 = (1 + l.scale * (l.x + half_w - camX)) * WIDTH / 2
+        sy_top = l.Y - l.scale * height * HEIGHT / 2
+        px1 = (1 + p_line.scale * (p_line.x - half_w - camX)) * WIDTH / 2
+        px2 = (1 + p_line.scale * (p_line.x + half_w - camX)) * WIDTH / 2
+        py_top = p_line.Y - p_line.scale * height * HEIGHT / 2
+        self.screen.set_clip(pygame.Rect(0, 0, WIDTH, clip_h))
+        pygame.draw.polygon(self.screen, c_col, [(px1, p_line.Y), (px1, py_top), (sx1, sy_top), (sx1, l.Y)])
+        pygame.draw.polygon(self.screen, c_col, [(px2, p_line.Y), (px2, py_top), (sx2, sy_top), (sx2, l.Y)])
+        pygame.draw.polygon(self.screen, c_col_d, [(px1, py_top), (px2, py_top), (sx2, sy_top), (sx1, sy_top)])
+        self.screen.set_clip(None)
 
     def init_bots(self):
         """Inizializza le IA rivali scalando velocità e griglia di partenza per il livello corretto"""
@@ -318,7 +344,10 @@ class Game:
             self.sky_offset_x += sky_turn
             
             self.speed = self.player_bike.speed
-            self.player_bike.update_physics()
+            if self.player_bike.update_physics():
+                # Rimasto troppo a lungo nel vuoto: la moto viene rimessa in pista con una penalità
+                self.score = max(0, self.score - 10)
+                self.lost_in_space_timer = 120
 
             check_idx = (int(self.pos / SEGMENT_LENGTH) + 1) % len(self.lines)
             check_line = self.lines[check_idx]
@@ -401,12 +430,16 @@ class Game:
             curr_y = self.lines[startPos % len(self.lines)].y
             next_y = self.lines[(startPos + 1) % len(self.lines)].y
             camY = curr_y + (next_y - curr_y) * percent
-            camH = 1500 + camY
+            # Se la strada più avanti sale, alziamo un po' la telecamera per non trovarci davanti un "muro"
+            ahead_y0 = self.lines[(startPos + 10) % len(self.lines)].y
+            ahead_y1 = self.lines[(startPos + 11) % len(self.lines)].y
+            ahead_y = ahead_y0 + (ahead_y1 - ahead_y0) * percent
+            camH = 1500 + camY + max(0, ahead_y - camY) * 0.5
             camX = self.player_bike.x * 2000
             
             coin_line = self.lines[(startPos + 2) % len(self.lines)]
             if coin_line.sprite is not None and not coin_line.sprite_collected:
-                height_ok = (self.player_bike.y > 1500) if coin_line.sprite_h > 0 else (self.player_bike.y < 3000)
+                height_ok = (self.player_bike.y > 1500) if coin_line.sprite_h > 0 else (0 <= self.player_bike.y < 3000)
                 if abs(coin_line.spriteX - self.player_bike.x) < 0.4 and height_ok:
                     coin_line.sprite_collected = True
                     self.score += 10
@@ -425,6 +458,7 @@ class Game:
                 l.project(l.x - camX, camH, self.pos, loop_offset)
                 
             maxy = HEIGHT
+            self.lines[startPos % len(self.lines)].clip = HEIGHT  # Il segmento sotto la telecamera non è mai coperto
             for n in range(1, 300):
                 idx = (startPos + n) % len(self.lines)
                 prev_idx = (startPos + n - 1) % len(self.lines)
@@ -496,35 +530,13 @@ class Game:
                 idx = (startPos + n) % len(self.lines)
                 l = self.lines[idx]
                 
-                if getattr(l, 'has_cave_tunnel', False) and n > 1:
+                if getattr(l, 'has_cave_tunnel', False):
                     p_line = self.lines[(idx - 1) % len(self.lines)]
-                    if l.Y < l.clip:
-                        c_col = l.cave_tunnel_color
-                        c_col_d = (max(0, c_col[0]-12), max(0, c_col[1]-12), max(0, c_col[2]-12))
-                        sx1 = (1 + l.scale * (l.x - 2400 - camX)) * WIDTH / 2
-                        sx2 = (1 + l.scale * (l.x + 2400 - camX)) * WIDTH / 2
-                        sy_top = l.Y - l.scale * 2200 * HEIGHT / 2
-                        px1 = (1 + p_line.scale * (p_line.x - 2400 - camX)) * WIDTH / 2
-                        px2 = (1 + p_line.scale * (p_line.x + 2400 - camX)) * WIDTH / 2
-                        py_top = p_line.Y - p_line.scale * 2200 * HEIGHT / 2
-                        pygame.draw.polygon(self.screen, c_col, [(px1, p_line.Y), (px1, py_top), (sx1, sy_top), (sx1, l.Y)])
-                        pygame.draw.polygon(self.screen, c_col, [(px2, p_line.Y), (px2, py_top), (sx2, sy_top), (sx2, l.Y)])
-                        pygame.draw.polygon(self.screen, c_col_d, [(px1, py_top), (px2, py_top), (sx2, sy_top), (sx1, sy_top)])
+                    self.draw_tunnel_segment(l, p_line, l.cave_tunnel_color, 12, 2400, 2200, camX)
 
-                if getattr(l, 'has_container', False) and n > 1:
+                if getattr(l, 'has_container', False):
                     p_line = self.lines[(idx - 1) % len(self.lines)]
-                    if l.Y < l.clip:
-                        c_col = l.container_color
-                        c_col_d = (max(0, c_col[0]-40), max(0, c_col[1]-40), max(0, c_col[2]-40))
-                        sx1 = (1 + l.scale * (l.x - 3000 - camX)) * WIDTH / 2
-                        sx2 = (1 + l.scale * (l.x + 3000 - camX)) * WIDTH / 2
-                        sy_top = l.Y - l.scale * 2500 * HEIGHT / 2
-                        px1 = (1 + p_line.scale * (p_line.x - 3000 - camX)) * WIDTH / 2
-                        px2 = (1 + p_line.scale * (p_line.x + 3000 - camX)) * WIDTH / 2
-                        py_top = p_line.Y - p_line.scale * 2500 * HEIGHT / 2
-                        pygame.draw.polygon(self.screen, c_col, [(px1, p_line.Y), (px1, py_top), (sx1, sy_top), (sx1, l.Y)])
-                        pygame.draw.polygon(self.screen, c_col, [(px2, p_line.Y), (px2, py_top), (sx2, sy_top), (sx2, l.Y)])
-                        pygame.draw.polygon(self.screen, c_col_d, [(px1, py_top), (px2, py_top), (sx2, sy_top), (sx1, sy_top)])
+                    self.draw_tunnel_segment(l, p_line, l.container_color, 40, 3000, 2500, camX)
 
                 if l.has_tree and l.Y < l.clip:
                     t_world_x = l.x + l.treeX * 2000
@@ -785,7 +797,12 @@ class Game:
             tilt = 25 if keys[pygame.K_LEFT] else (-25 if keys[pygame.K_RIGHT] else 0)
             bike_base_img = self.bike_assets.get(self.player_color, {}).get('back', self.bike_back_img)
             
-            if self.player_bike.is_flipping:
+            if self.player_bike.y < 0:
+                # Sotto la pista (caduta nel vuoto o risalita): la moto si allontana rimpicciolendo e ruota lentamente
+                depth_scale = max(0.4, 1 + self.player_bike.y / 6000)
+                spin = self.player_bike.fall_timer * 3 if self.player_bike.is_falling else 0
+                bike_render_img = pygame.transform.rotozoom(bike_base_img, spin + tilt, depth_scale)
+            elif self.player_bike.is_flipping:
                 bike_render_img = pygame.transform.rotate(bike_base_img, self.player_bike.flip_angle)
             elif tilt != 0:
                 bike_render_img = pygame.transform.rotate(bike_base_img, tilt)
@@ -797,9 +814,12 @@ class Game:
             self.screen.blit(bike_render_img, (WIDTH / 2 - bw / 2, screen_bike_y))
 
             # --- 7. APPLICAZIONE INTERFACCIA HUD E LEADERBOARD LIVE ---
-            self.ui.draw_hud(self.screen, self.lap, self.max_laps, self.score, self.bravo_timer, self.collected_coins, self.total_coins)
+            self.ui.draw_hud(self.screen, self.lap, self.max_laps, self.score, self.bravo_timer, self.collected_coins, self.total_coins,
+                             falling=self.player_bike.is_falling, lost_timer=self.lost_in_space_timer)
             if self.bravo_timer > 0:
                 self.bravo_timer -= 1
+            if self.lost_in_space_timer > 0:
+                self.lost_in_space_timer -= 1
                 
             live_list = []
             live_list.append({'name': 'TU', 'color': self.player_color, 'dist': (self.lap - 1) * self.track_length + self.pos, 'is_player': True})
