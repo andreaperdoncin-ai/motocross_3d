@@ -41,25 +41,21 @@ Motocross 3D è un entusiasmante *arcade racing game* in Python ispirato ai clas
 
 ## 🛠️ Requisiti e Installazione
 
-Il gioco richiede **Python 3** e la libreria **Pygame**.
+Il gioco richiede **Python 3** (testato con Python 3.15) e la libreria **pygame-ce** (Pygame Community Edition), indicata in `requirements.txt`.
 
 ```bash
-# Crea un ambiente virtuale (opzionale ma consigliato)
-python3 -m venv venv
-source venv/bin/activate
+# Crea e attiva l'ambiente virtuale nella cartella del progetto
+python3 -m venv .venv
+source .venv/bin/activate
 
-# Installa Pygame
-pip install pygame
+# Installa le dipendenze
+pip install -r requirements.txt
 
 # Avvia il gioco
-python3 main.py
-```
-
-*In alternativa, su Linux, puoi usare lo script di supporto fornito:*
-```bash
-chmod +x motocross_game.sh
 ./motocross_game.sh
 ```
+
+*Lo script `motocross_game.sh` attiva da solo l'ambiente `.venv` e avvia `main.py`. In alternativa, con l'ambiente attivo, puoi eseguire direttamente `python3 main.py`.*
 
 ## 📁 Struttura del Progetto
 
@@ -71,7 +67,7 @@ chmod +x motocross_game.sh
   - `track.py`: Generatore matematico dei circuiti e posizionamento ostacoli.
   - `ui.py`: Interfaccia grafica (HUD), Menu, Podio e Titoli di coda.
 - `assets/`: Immagini (moto, monete, sfondi), script generatori e suoni.
-- `scratch/`: Script Python secondari usati per generare programmaticamente gli sfondi e gli asset.
+- `tools/`: Script Python secondari usati per generare programmaticamente gli sfondi e gli asset.
 
 ---
 *Progetto creato e perfezionato in collaborazione con l'IA, dedicato al grande campione Amedeo!* 🏆

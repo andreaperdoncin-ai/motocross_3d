@@ -16,9 +16,9 @@ else
 fi
 
 # Controlla se l'ambiente virtuale è presente e lo attiva
-if [ -f "venv/bin/activate" ]; then
+if [ -f ".venv/bin/activate" ]; then
     echo "📦 Attivazione dell'ambiente virtuale (venv)..."
-    source venv/bin/activate
+    source .venv/bin/activate
 else
     echo "❌ Errore: Ambiente virtuale non trovato. Esegui prima la configurazione."
     exit 1
