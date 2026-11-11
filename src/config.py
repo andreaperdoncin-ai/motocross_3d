@@ -1,7 +1,7 @@
 # src/config.py
 
 # Versione del gioco (versionamento semantico MAJOR.MINOR.PATCH)
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 
 import pygame
 
@@ -10,8 +10,13 @@ pygame.init()
 _info = pygame.display.Info()
 
 # Impostazioni Finestra / Schermo
-WIDTH = _info.current_w if _info.current_w > 0 else 1920
-HEIGHT = _info.current_h if _info.current_h > 0 else 1080
+# Il gioco è disegnato per un'altezza di 1080 pixel: si usa una risoluzione logica
+# alta 1080 con le stesse proporzioni dello schermo, poi pygame.SCALED la adatta
+# a tutto schermo (es. 3072x1920 -> 1728x1080), così moto, HUD e font restano proporzionati.
+_NATIVE_W = _info.current_w if _info.current_w > 0 else 1920
+_NATIVE_H = _info.current_h if _info.current_h > 0 else 1080
+HEIGHT = 1080
+WIDTH = round(HEIGHT * _NATIVE_W / _NATIVE_H)
 FPS = 60
 
 # Parametri del Tracciato

@@ -1,4 +1,5 @@
 # src/game.py
+import os
 import sys
 import math
 import random
@@ -19,7 +20,9 @@ class Game:
         pygame.init()
         pygame.mixer.init()
         
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+        # Ingrandimento con filtro lineare (più morbido del "nearest" predefinito)
+        os.environ.setdefault("SDL_RENDER_SCALE_QUALITY", "linear")
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
         pygame.display.set_caption("Motocross 3D")
         self.clock = pygame.time.Clock()
         
