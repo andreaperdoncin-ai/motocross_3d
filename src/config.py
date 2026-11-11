@@ -1,4 +1,8 @@
 # src/config.py
+
+# Versione del gioco (versionamento semantico MAJOR.MINOR.PATCH)
+VERSION = "2.0.0"
+
 import pygame
 
 # Inizializzazione temporanea per catturare le info dello schermo nativo

@@ -1,5 +1,7 @@
 # 🏍️ Motocross 3D - Il Trionfo di Amedeo 🏍️
 
+**Versione 2.0.0**
+
 Motocross 3D è un entusiasmante *arcade racing game* in Python ispirato ai classici giochi di corse retro in pseudo-3D. Sfreccia attraverso piste dinamiche, salta ostacoli, fai acrobazie, raccogli monete d'oro e batti i rivali per qualificarti al livello successivo! Riuscirai a completare tutti i 9 mondi e conquistare l'universo?
 
 ## ✨ Caratteristiche Principali
